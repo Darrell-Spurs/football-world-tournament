@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Cup Draft — Squad Viewer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1116; --surface-1:#161b23; --surface-2:#1d232d;
+    --border:#2a3240; --border-strong:#3d4a5c;
+    --text-primary:#e8ecf1; --text-secondary:#9aa7b5; --text-muted:#68758a;
+    --radius:10px;
+    --bg-pro:#3b2d55; --text-pro:#c9b3f5;      /* GK */
+    --bg-accent:#1d3a5c; --text-accent:#8fc2f5; /* DEF */
+    --bg-success:#1c3f2e; --text-success:#8fdcae;/* MID */
+    --bg-warning:#4a3517; --text-warning:#f0c375;/* FWD */
+    --warn-band:#4a3517; --warn-text:#f0c375;
+    --alert-band:#4a2020; --alert-text:#f0a1a1;
+    --sel:#232c38;
+  }
+  [data-theme="light"]{
+    --bg:#f5f6f8; --surface-1:#ffffff; --surface-2:#eef1f5;
+    --border:#dde3ea; --border-strong:#b9c3cf;
+    --text-primary:#1c232d; --text-secondary:#4d5a68; --text-muted:#8492a3;
+    --bg-pro:#ece4fb; --text-pro:#5b3aa8;
+    --bg-accent:#e0edfb; --text-accent:#1c5da8;
+    --bg-success:#dff3e7; --text-success:#177a45;
+    --bg-warning:#fbeed5; --text-warning:#9a6a12;
+    --warn-band:#fbeed5; --warn-text:#8a5e0d;
+    --alert-band:#fde3e3; --alert-text:#a32626;
+    --sel:#e8edf4;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text-primary);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px; line-height:1.4;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
+  /* ── App frame ─────────────────────────────── */
+  .app{display:flex;min-height:100vh}
+  .board{
+    width:262px;flex:0 0 262px;border-right:0.5px solid var(--border);
+    padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;
+  }
+  .main{flex:1;min-width:0;padding:26px 32px 60px;max-width:1060px;margin:0 auto}
+
+  /* ── Draft board (sidebar) ─────────────────── */
+  .brand{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-muted);margin:0 0 2px}
+  .brand-title{font-size:17px;font-weight:600;margin:0 0 12px;letter-spacing:-0.01em}
+  .filter-row{display:flex;gap:10px;align-items:center;margin:2px 0 14px}
+  .chip{
+    background:none;border:0.5px solid var(--border);color:var(--text-secondary);
+    border-radius:999px;padding:4px 12px;font-size:12px;cursor:pointer;font:inherit;
+  }
+  .chip.active{background:var(--sel);color:var(--text-primary);border-color:var(--border-strong)}
+  .chip:focus-visible{outline:2px solid var(--text-accent);outline-offset:1px}
+  /* filter dots */
+  .fdot{width:20px;height:20px;border-radius:50%;border:0;padding:0;cursor:pointer;
+        transition:transform .1s ease;position:relative}
+  .fdot:hover{transform:scale(1.15)}
+  .fdot:focus-visible{outline:2px solid var(--text-accent);outline-offset:2px}
+  .fdot.active{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text-primary)}
+  .fdot.all{background:var(--text-accent)}
+  .fdot.full{background:var(--text-success)}
+  .fdot.thin{background:var(--text-warning)}
+  .fdot.insufficient{background:#e06c6c}
+  .fdot.pending{background:var(--border-strong)}
+  /* light/dark toggle (top-right) */
+  .theme-toggle{position:fixed;top:16px;right:18px;z-index:60;width:38px;height:38px;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;cursor:pointer;
+        background:var(--surface-1);border:0.5px solid var(--border);color:var(--text-secondary)}
+  .theme-toggle:hover{background:var(--surface-2);color:var(--text-primary)}
+  .theme-toggle:focus-visible{outline:2px solid var(--text-accent);outline-offset:1px}
+  .theme-toggle svg{width:18px;height:18px}
+  /* edit / swap mode */
+  .edit-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+  .edit-hint{font-size:12.5px;color:var(--text-secondary)}
+  .btn.primary{background:var(--text-accent);color:#fff;border-color:transparent}
+  .btn.primary:disabled{opacity:.45;cursor:not-allowed}
+  .btn.danger{color:var(--alert-text);border-color:var(--alert-band)}
+  .editable{cursor:pointer;border-radius:8px;transition:background .1s,box-shadow .1s}
+  .bentry.editable:hover,.rcard.editable:hover,.pcol.editable:hover{background:var(--surface-2)}
+  .editable.selected{box-shadow:0 0 0 2px var(--text-accent);background:var(--sel)}
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:80;
+    background:var(--surface-2);color:var(--text-primary);border:0.5px solid var(--border-strong);
+    border-radius:8px;padding:10px 18px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.25);
+    opacity:0;pointer-events:none;transition:opacity .2s;max-width:80%;text-align:center}
+  #toast.show{opacity:1}
+  #toast.err{border-color:var(--alert-text);color:var(--alert-text)}
+  .pick-card{
+    display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+    background:none;border:0.5px solid transparent;border-radius:8px;
+    padding:7px 9px;margin:1px 0;cursor:pointer;color:var(--text-primary);
+    font:inherit;
+  }
+  .pick-card:hover{background:var(--surface-1)}
+  .pick-card.active{background:var(--sel);border-color:var(--border)}
+  .pick-card:focus-visible{outline:2px solid var(--text-accent);outline-offset:1px}
+  .pick-card.dim .pick-name{color:var(--text-muted)}
+  .pick-num{font-size:11px;color:var(--text-muted);width:28px;flex:0 0 28px;text-align:right}
+  .pick-name{font-size:13.5px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pick-flag{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+  .pick-flag.full{background:var(--text-success)}
+  .pick-flag.thin{background:var(--text-warning)}
+  .pick-flag.insufficient{background:#e06c6c}
+  .pick-flag.pending{background:var(--border-strong)}
+  .board-note{font-size:11px;color:var(--text-muted);margin:14px 4px 0;line-height:1.5}
+  .legend{margin:14px 4px 0;font-size:11px;color:var(--text-muted);display:grid;grid-template-columns:1fr 1fr;gap:5px 12px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:0 0 8px}
+
+  /* ── Loader / toolbar ──────────────────────── */
+  .toolbar{display:flex;align-items:center;gap:10px;margin:0 0 22px;flex-wrap:wrap}
+  .btn{
+    background:var(--surface-1);border:0.5px solid var(--border);color:var(--text-primary);
+    border-radius:8px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;font:inherit;
+  }
+  .btn:hover{background:var(--surface-2)}
+  .btn:focus-visible{outline:2px solid var(--text-accent);outline-offset:1px}
+  .src-label{font-size:12px;color:var(--text-muted)}
+  .drop-hint{font-size:12px;color:var(--text-muted)}
+  body.dragging::after{
+    content:"Drop squad_registry.xlsx or insufficient_pool_teams.csv to update";
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.55);color:#fff;font-size:20px;font-weight:600;z-index:99;
+    border:3px dashed var(--text-accent);text-align:center;padding:20px;
+  }
+
+  /* ── Team header ───────────────────────────── */
+  .team-head{margin:0 0 18px}
+  .team-eyebrow{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);margin:0 0 4px}
+  .team-name{font-size:34px;font-weight:700;letter-spacing:-0.02em;margin:0 0 12px}
+  .stat-row{display:flex;gap:26px;flex-wrap:wrap}
+  .stat .k{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin:0}
+  .stat .v{font-size:16px;font-weight:600;margin:2px 0 0}
+  .note-band{
+    display:flex;align-items:flex-start;gap:10px;
+    border-radius:var(--radius);padding:10px 16px;margin:16px 0 0;
+    font-size:13.5px;font-weight:500;line-height:1.5;
+  }
+  .note-band svg{flex:0 0 16px;margin-top:2px}
+  .note-band.warn{background:var(--warn-band);color:var(--warn-text)}
+  .note-band.alert{background:var(--alert-band);color:var(--alert-text)}
+  .note-band.info{background:var(--surface-1);color:var(--text-secondary)}
+
+  /* ── Section labels ────────────────────────── */
+  .sec-label{font-size:13px;font-weight:500;color:var(--text-secondary);margin:34px 0 12px}
+
+  /* ── Pitch (fixed spec) ────────────────────── */
+  .pitch{position:relative;border:0.5px solid var(--border);border-radius:12px;padding:28px 20px 24px;overflow:hidden;margin-top:20px}
+  .halfway{position:absolute;left:0;right:0;top:50%;height:0.5px;background:var(--border-strong)}
+  .circle{position:absolute;left:50%;top:50%;width:150px;height:150px;border:0.5px solid var(--border-strong);border-radius:50%;transform:translate(-50%,-50%)}
+  .goalbox{position:absolute;bottom:0;left:50%;width:260px;height:100px;border:0.5px solid var(--border-strong);border-bottom:none;transform:translateX(-50%)}
+  .prow{display:flex;justify-content:space-around;align-items:flex-start;height:150px;position:relative;z-index:1}
+  .prow.gkrow{height:130px}
+  .pcol{display:flex;flex-direction:column;align-items:center;text-align:center;width:130px}
+  .prow.tight .pcol{width:120px}
+  .badge{
+    width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:500;font-size:14px;
+  }
+  .g-GK{background:var(--bg-pro);color:var(--text-pro)}
+  .g-DEF{background:var(--bg-accent);color:var(--text-accent)}
+  .g-MID{background:var(--bg-success);color:var(--text-success)}
+  .g-FWD{background:var(--bg-warning);color:var(--text-warning)}
+  .pname{font-size:15px;font-weight:500;margin:6px 0 0}
+  .pclub{font-size:12px;color:var(--text-secondary);margin:2px 0 0}
+  .prating{font-size:11px;color:var(--text-muted);margin:2px 0 0}
+
+  /* ── Bench (fixed 4 columns) ───────────────── */
+  .bench{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .bcol{text-align:center}
+  .pill{display:inline-block;font-size:13px;padding:4px 14px;border-radius:999px;font-weight:500;margin:0 0 10px}
+  .bentry{margin:0 0 8px}
+  .bentry .n{font-size:14px;margin:0}
+  .bentry .c{font-size:12px;color:var(--text-muted);margin:1px 0 0}
+  .bentry .r{font-size:11px;color:var(--text-secondary);margin:1px 0 0}
+  .bempty{font-size:12px;color:var(--text-muted)}
+
+  /* ── Reserves (fixed 5 columns) ────────────── */
+  .reserves{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .rcard{background:var(--surface-1);border-radius:var(--radius);padding:10px 8px;text-align:center}
+  .rcard .rid{font-size:11px;color:var(--text-muted);margin:0}
+  .rcard .n{font-size:14px;font-weight:500;margin:4px 0 0}
+  .rcard .c{font-size:12px;color:var(--text-muted);margin:2px 0 0}
+  .rcard .r{font-size:11px;color:var(--text-secondary);margin:2px 0 0}
+  .no-res{font-size:13px;color:var(--text-muted)}
+
+  /* ── Empty-state card for no-data teams ────── */
+  .empty-team{
+    border:0.5px dashed var(--border-strong);border-radius:12px;
+    padding:40px 24px;margin-top:20px;text-align:center;color:var(--text-muted);font-size:14px;line-height:1.6;
+  }
+
+  /* ── Responsive ────────────────────────────── */
+  @media (max-width: 900px){
+    .app{flex-direction:column}
+    .board{width:auto;flex:none;height:auto;max-height:40vh;position:static;border-right:none;border-bottom:0.5px solid var(--border);padding:12px 14px}
+    .brand,.board-note,.legend{display:none}
+    .main{padding:20px 16px 60px}
+    .bench{grid-template-columns:repeat(2,1fr)}
+    .reserves{grid-template-columns:repeat(3,1fr)}
+    .team-name{font-size:26px}
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .pick-card,.btn,.chip{transition:background 0.12s ease}
+  }
+</style>
+</head>
+<body>
+<h2 class="sr-only">Interactive viewer covering every team in the World Cup draft order: full squads render a starting XI pitch diagram, bench, and reserve pool; thin-pool, insufficient-pool, and not-yet-drafted teams show explanatory status notes.</h2>
+<button id="themeToggle" class="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle light/dark mode"></button>
+<div class="app">
+  <nav class="board" id="board" aria-label="Draft order">
+    <p class="brand">World Cup draft</p>
+    <p class="brand-title">Draft board</p>
+    <div class="filter-row" role="tablist" aria-label="Filter teams">
+      <button class="fdot all active" data-f="all" title="All teams" aria-label="All teams"></button>
+      <button class="fdot full" data-f="full" title="Full squads" aria-label="Full squads"></button>
+      <button class="fdot thin" data-f="thin" title="Thin pool" aria-label="Thin pool"></button>
+      <button class="fdot insufficient" data-f="insufficient" title="Insufficient / none" aria-label="Insufficient"></button>
+      <button class="fdot pending" data-f="pending" title="Not drafted" aria-label="Not drafted"></button>
+    </div>
+    <div id="pickList"></div>
+    <div class="legend">
+      <span><i class="pick-flag full"></i> Full 26</span>
+      <span><i class="pick-flag thin"></i> Thin pool</span>
+      <span><i class="pick-flag insufficient"></i> Insufficient</span>
+      <span><i class="pick-flag pending"></i> Not drafted</span>
+    </div>
+    <p class="board-note" id="boardNote"></p>
+  </nav>
+  <main class="main">
+    <div class="toolbar">
+      <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none">
+      <span class="src-label" id="srcLabel"></span>
+      <span class="drop-hint">or drop either file anywhere on the page</span>
+    </div>
+    <div id="teamView"></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<script id="embedded-data" type="application/json">{"order":[],"teams":[],"insufficient":{}}</script>
+<script>
+/* ═══════════ Data ═══════════ */
+const EMBED = JSON.parse(document.getElementById('embedded-data').textContent);
+let ORDER = EMBED.order;            // [{pick, rank, team, category}] full draft order
+let TEAMS = EMBED.teams;            // registry team sheets [{team, squad, reserves}]
+let INSUFF = EMBED.insufficient||{};// normalized name -> {count, shortfall}
+let THIN = EMBED.thin||{};          // normalized name -> {country, players:[…]} for incomplete pools
+let filter = 'all';
+let currentKey = null;              // normalized team name of selected team
+let editing = false;                // swap/edit mode on the current team
+let edit = null;                    // working copy: {team, squad:[…], reserves:[…], dirty}
+let sel = null;                     // current selection: {kind:'squad'|'reserve', id}
+
+const norm = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+
+/* Generic sheet parser — identical logic for every team workbook sheet */
+function parseTeamSheet(rows){
+  const squad = [], reserves = [];
+  let mode = 'squad';
+  for (let i = 1; i < rows.length; i++){
+    const r = rows[i] || [];
+    const first = r[0];
+    if (mode === 'squad'){
+      if (first === undefined || first === null || first === ''){ mode = 'after'; continue; }
+      if (r[1] === undefined || r[1] === null || r[1] === '') continue; // stray row: country cell filled, no player
+      squad.push({player:r[1], id:String(r[2]??''), pos:r[3], det:r[4], rav:r[5], value:r[6],
+                  club:r[7], age:r[8], nat:r[9], nat2:r[10], src:r[11], role:r[12]});
+    } else {
+      if (typeof first === 'string' && /^R\d+$/.test(first)){
+        reserves.push({rid:first, player:r[1], id:String(r[2]??''), pos:r[3], det:r[4], rav:r[5],
+                       value:r[6], club:r[7], age:r[8], nat:r[9], nat2:r[10]});
+      }
+    }
+  }
+  return {squad, reserves};
+}
+
+function parseWorkbook(wb){
+  const teams = [];
+  for (const name of wb.SheetNames){
+    if (name === 'All_Players') continue;
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:null});
+    const {squad, reserves} = parseTeamSheet(rows);
+    if (squad.length) teams.push({team:name, squad, reserves});
+  }
+  return teams;
+}
+
+/* insufficient_pool_teams.csv: Team, FIFA_Rank, ValuedPlayerCount, ShortfallCount */
+function parseInsuffCsv(text){
+  const lines = text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return null;
+  const head = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const ti = head.findIndex(h => h.includes('team'));
+  const ci = head.findIndex(h => h.includes('valued'));
+  const si = head.findIndex(h => h.includes('short'));
+  if (ti < 0) return null;
+  const out = {};
+  for (const line of lines.slice(1)){
+    const cells = line.split(',');
+    const team = cells[ti] && cells[ti].trim();
+    if (!team) continue;
+    out[norm(team)] = {
+      team,
+      count: ci >= 0 ? parseInt(cells[ci]) : null,
+      shortfall: si >= 0 ? parseInt(cells[si]) : null
+    };
+  }
+  return out;
+}
+
+/* thin_pool_players.csv: Country, Player, Position, PositionDetail, RAV, MarketValue, Club, Age, Nationality, Second Nationality, TransfermarktID */
+function parseThinCsv(text){
+  const lines = text.replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim());
+  if(!lines.length) return {};
+  const head = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const idx = n => head.findIndex(h => h.includes(n));
+  const ci=idx('country'), pl=idx('player'), po=idx('position'), de=idx('detail'),
+        ra=idx('rav'), mv=idx('value'), cl=idx('club'), ag=idx('age'),
+        na=idx('nationality'), n2=idx('second');
+  if(ci < 0) return {};
+  const out = {};
+  for(const line of lines.slice(1)){
+    const c = line.split(',');
+    const country = (c[ci]||'').trim();
+    if(!country) continue;
+    const key = norm(country);
+    if(!out[key]) out[key] = {country, players:[]};
+    out[key].players.push({
+      player: pl>=0?(c[pl]||'').trim():'', pos: po>=0?(c[po]||'').trim():'',
+      det: de>=0?(c[de]||'').trim():'', rav: ra>=0?(parseFloat(c[ra])||0):0,
+      value: mv>=0?(c[mv]||'').trim():'', club: cl>=0?(c[cl]||'').trim():'',
+      age: ag>=0?(c[ag]||'').trim():'', nat: na>=0?(c[na]||'').trim():'',
+      nat2: n2>=0?(c[n2]||'').trim():''
+    });
+  }
+  return out;
+}
+
+/* ═══════════ Unified team model: every draft-order entry + any extra registry sheets ═══════════ */
+function buildRoster(){
+  const regByKey = {};
+  for (const t of TEAMS) regByKey[norm(t.team)] = t;
+  const seen = new Set();
+  const roster = [];
+  const sorted = [...ORDER].sort((a,b) => a.pick - b.pick);  // strict numeric 1,2,3… order
+  for (const o of sorted){
+    const key = norm(o.team);
+    seen.add(key);
+    const reg = regByKey[key] || null;
+    const ins = INSUFF[key] || null;
+    const thin = THIN[key] || null;
+    let status;
+    if (reg) status = reg.squad.length >= 26 ? 'full' : 'thin';
+    else if (thin && thin.players.length) status = 'thin';
+    else if (ins) status = 'insufficient';
+    else status = 'pending';
+    roster.push({key, name:o.team, pick:o.pick, rank:o.rank, reg, ins, thin, status});
+  }
+  // registry sheets not in the draft order (special/regional teams) go after the FIFA block
+  for (const t of TEAMS){
+    const key = norm(t.team);
+    if (seen.has(key)) continue;
+    roster.push({key, name:t.team, pick:null, rank:null, reg:t, ins:null, thin:THIN[key]||null,
+                 status:t.squad.length >= 26 ? 'full' : 'thin'});
+  }
+  return roster;
+}
+let ROSTER = buildRoster();
+currentKey = ROSTER[0] && ROSTER[0].key;
+
+/* ═══════════ Helpers ═══════════ */
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const GROUP = d => {
+  d = String(d||'').toUpperCase();
+  if (d === 'GK') return 'GK';
+  if (['LB','CB','RB','LWB','RWB'].includes(d)) return 'DEF';
+  if (['DM','CM','AM','LM','RM'].includes(d)) return 'MID';
+  if (['LW','RW','ST','CF','SS'].includes(d)) return 'FWD';
+  return 'MID';
+};
+const groupFromBroad = p => ({'Goalkeeper':'GK','Defender':'DEF','Midfielder':'MID','Forward':'FWD'})[p] || null;
+const playerGroup = p => groupFromBroad(p.pos) || GROUP(p.det);
+const LAT = d => { d = String(d||'').toUpperCase();
+  if (d.startsWith('L')) return 0;
+  if (d.startsWith('R')) return 2;
+  return 1; };
+
+const valNum = v => {
+  const m = String(v||'').replace('€','').trim().match(/^([\d.]+)\s*(m|k)?$/i);
+  if (!m) return 0;
+  return parseFloat(m[1]) * (m[2] && m[2].toLowerCase()==='m' ? 1e6 : m[2] ? 1e3 : 1);
+};
+const fmtVal = n => n >= 1e6 ? (n/1e6).toFixed(2).replace(/\.?0+$/,'') + 'm' : Math.round(n/1e3) + 'k';
+const cleanVal = v => String(v||'').replace('€','');
+const rating = p => `${Number(p.rav).toFixed(1)} RAV · ${p.age} · ${cleanVal(p.value)}`;
+const WARN_SVG = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1L15 14H1L8 1Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="12" r="0.7" fill="currentColor"/></svg>`;
+
+/* ═══════════ Sidebar ═══════════ */
+function matchesFilter(e){
+  if (filter === 'all') return true;
+  return e.status === filter;   // full | thin | insufficient | pending
+}
+function renderBoard(){
+  const list = document.getElementById('pickList');
+  list.innerHTML = ROSTER.filter(matchesFilter).map(e => `
+    <button class="pick-card${e.key===currentKey?' active':''}${e.status==='pending'?' dim':''}" data-k="${e.key}">
+      <span class="pick-num mono">${e.pick ? '#'+e.pick : '★'}</span>
+      <span class="pick-name">${esc(e.name)}</span>
+      <span class="pick-flag ${e.status}" title="${e.status}"></span>
+    </button>`).join('');
+  list.querySelectorAll('.pick-card').forEach(b => b.addEventListener('click', () => {
+    if (edit && edit.dirty && !confirm('Discard unsaved squad changes?')) return;
+    edit = null; editing = false; sel = null;
+    currentKey = b.dataset.k; renderBoard(); renderTeam();
+    document.querySelector('.main').scrollIntoView({behavior:'smooth', block:'start'});
+  }));
+  const c = s => ROSTER.filter(e => e.status === s).length;
+  document.getElementById('boardNote').textContent =
+    `${ROSTER.length} teams · ${c('full')} full · ${c('thin')} thin · ${c('insufficient')} insufficient · ${c('pending')} not drafted`;
+}
+
+/* ═══════════ Team view — one template, with status notes ═══════════ */
+function pitchRow(players, cls){
+  if (!players.length) return '';
+  const sorted = [...players].sort((a,b) => LAT(a.det)-LAT(b.det) || b.rav-a.rav);
+  const tight = sorted.length >= 4 ? ' tight' : '';
+  return `<div class="prow ${cls}${tight}">` + sorted.map(p => {
+    const ec = editing ? ' editable' : '';
+    const sc = (editing && sel && sel.kind==='squad' && String(sel.id)===String(p.id)) ? ' selected' : '';
+    const at = editing ? ` data-id="${esc(p.id)}" data-kind="squad"` : '';
+    return `<div class="pcol${ec}${sc}"${at}>
+      <div class="badge g-${playerGroup(p)}">${esc(p.det||'—')}</div>
+      <p class="pname">${esc(p.player)}</p>
+      <p class="pclub">${esc(p.club)}</p>
+      <p class="prating mono">${rating(p)}</p>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function statusNote(e){
+  const t = e.reg;
+  if (e.status === 'thin'){
+    const n = t.squad.length;
+    return `<div class="note-band warn">${WARN_SVG}<span>Thin pool — only ${n} of 26 valued players available on Transfermarkt (${26-n} short). All extracted players are shown below; remaining slots stay open and the team is deferred for later handling (e.g. regional merge).</span></div>`;
+  }
+  if (e.status === 'insufficient'){
+    const c = e.ins && Number.isFinite(e.ins.count) ? e.ins.count : null;
+    const detail = c !== null
+      ? `only ${c} valued player${c===1?'':'s'} exist${c===1?'s':''} on Transfermarkt (${26-c} short of 26)`
+      : `fewer than 25 valued players in the merged first + second citizenship count`;
+    return `<div class="note-band alert">${WARN_SVG}<span>Insufficient pool — ${detail}. Failed the Step 0 pre-check, so no full extraction or squad was built. Logged in insufficient_pool_teams.csv and planned to be folded into a merged regional squad.</span></div>`;
+  }
+  if (e.status === 'pending'){
+    return `<div class="note-band info">${WARN_SVG}<span>Not drafted yet — the draft hasn't reached this pick, so no extraction has been run and no squad data exists in the registry.</span></div>`;
+  }
+  return '';
+}
+
+function renderTeam(){
+  const e = ROSTER.find(x => x.key === currentKey);
+  const view = document.getElementById('teamView');
+  if (!e){ view.innerHTML = ''; return; }
+  const eyebrow = e.pick ? `Pick #${e.pick} · FIFA rank ${e.rank}` : 'Special / regional team';
+
+  /* ── Incomplete-pool teams: 4-column grid of every available player by position ── */
+  if (!e.reg && e.thin && e.thin.players.length){
+    const players = e.thin.players;
+    const n = players.length;
+    const gridCols = [['Goalkeepers','GK','g-GK'],['Defenders','DEF','g-DEF'],['Midfielders','MID','g-MID'],['Forwards','FWD','g-FWD']]
+      .map(([label, g, cls]) => {
+        const list = players.filter(p => playerGroup(p) === g).sort((a,b) => b.rav - a.rav);
+        const entries = list.length ? list.map(p => `
+          <div class="bentry">
+            <p class="n">${esc(p.player)} (${esc(p.det||'—')})</p>
+            <p class="c">${esc(p.club)}</p>
+            <p class="r mono">${rating(p)}</p>
+          </div>`).join('') : `<p class="bempty">None</p>`;
+        return `<div class="bcol"><span class="pill ${cls}">${label} · ${list.length}</span>${entries}</div>`;
+      }).join('');
+    const totalVal = players.reduce((s,p) => s + valNum(p.value), 0);
+    const avgRav = n ? players.reduce((s,p) => s + Number(p.rav||0), 0) / n : 0;
+    const note = `<div class="note-band warn">${WARN_SVG}<span>Incomplete pool — ${n} of 26 valued players found on Transfermarkt (${Math.max(0,26-n)} short). Every available player is listed below by position; the squad is deferred for later handling (e.g. regional merge).</span></div>`;
+    view.innerHTML = `
+      <header class="team-head">
+        <p class="team-eyebrow">${eyebrow}</p>
+        <h1 class="team-name">${esc(e.name)}</h1>
+        <div class="stat-row">
+          <div class="stat"><p class="k">Available</p><p class="v mono">${n}/26</p></div>
+          <div class="stat"><p class="k">Short by</p><p class="v mono">${Math.max(0,26-n)}</p></div>
+          <div class="stat"><p class="k">Avg RAV</p><p class="v mono">${avgRav.toFixed(1)}</p></div>
+          <div class="stat"><p class="k">Total value</p><p class="v mono">${fmtVal(totalVal)}</p></div>
+        </div>
+        ${note}
+      </header>
+      <p class="sec-label">Available players · by position</p>
+      <div class="bench">${gridCols}</div>`;
+    return;
+  }
+
+  /* ── Teams without registry data: header + status note only ── */
+  if (!e.reg){
+    view.innerHTML = `
+      <header class="team-head">
+        <p class="team-eyebrow">${eyebrow}</p>
+        <h1 class="team-name">${esc(e.name)}</h1>
+        ${statusNote(e)}
+      </header>
+      <div class="empty-team">
+        No lineup to display for ${esc(e.name)}.<br>
+        ${e.status === 'insufficient'
+          ? 'The nation\u2019s valued players (if any) are recorded in insufficient_pool_teams.csv, not the squad registry.'
+          : 'Reload the registry once this pick has been processed to see the squad here.'}
+      </div>`;
+    return;
+  }
+
+  /* ── Teams with registry data: full fixed template (+ editable swap model) ── */
+  const t = e.reg;
+  if (!edit || edit.team !== t.team){       // switched team → fresh working copy
+    edit = { team:t.team, squad:t.squad.map(p => ({...p})), reserves:t.reserves.map(p => ({...p})), dirty:false };
+    editing = false; sel = null;
+  } else if (!edit.dirty){                   // same team, no unsaved edits → pick up any live registry changes
+    edit.squad = t.squad.map(p => ({...p}));
+    edit.reserves = t.reserves.map(p => ({...p}));
+  }                                          // same team WITH unsaved edits → keep working copy as-is
+  const squad = edit.squad, reserves = edit.reserves;
+  const xi = squad.filter(p => p.role === 'Starting XI');
+  const bench = squad.filter(p => p.role !== 'Starting XI');
+  const byG = g => xi.filter(p => playerGroup(p) === g);
+  const gk = byG('GK'), def = byG('DEF'), mid = byG('MID'), fwd = byG('FWD');
+  const formation = xi.length ? [def.length, mid.length, fwd.length].join('-') : '—';
+  const totalVal = squad.reduce((s,p) => s + valNum(p.value), 0);
+  const avgRav = squad.length ? (squad.reduce((s,p) => s + Number(p.rav||0), 0) / squad.length) : 0;
+  const isFull = t.squad.length >= 26;
+
+  const benchCols = [['Goalkeepers','GK','g-GK'],['Defenders','DEF','g-DEF'],['Midfielders','MID','g-MID'],['Forwards','FWD','g-FWD']]
+    .map(([label, g, cls]) => {
+      const list = bench.filter(p => playerGroup(p) === g).sort((a,b) => b.rav - a.rav);
+      const entries = list.length ? list.map(p => {
+        const ec = editing ? ' editable' : '';
+        const sc = (editing && sel && sel.kind==='squad' && String(sel.id)===String(p.id)) ? ' selected' : '';
+        const at = editing ? ` data-id="${esc(p.id)}" data-kind="squad"` : '';
+        return `<div class="bentry${ec}${sc}"${at}>
+          <p class="n">${esc(p.player)} (${esc(p.det||'—')})</p>
+          <p class="c">${esc(p.club)}</p>
+          <p class="r mono">${rating(p)}</p>
+        </div>`;
+      }).join('') : `<p class="bempty">None</p>`;
+      return `<div class="bcol"><span class="pill ${cls}">${label}</span>${entries}</div>`;
+    }).join('');
+
+  const reserveCards = reserves.map(p => {
+    const ec = editing ? ' editable' : '';
+    const sc = (editing && sel && sel.kind==='reserve' && String(sel.id)===String(p.id)) ? ' selected' : '';
+    const at = editing ? ` data-id="${esc(p.id)}" data-kind="reserve"` : '';
+    return `<div class="rcard${ec}${sc}"${at}>
+      <p class="rid mono">${esc(p.rid)} · ${esc(p.det||'—')}</p>
+      <p class="n">${esc(p.player)}</p>
+      <p class="c">${esc(p.club)}</p>
+      <p class="r mono">${rating(p)}</p>
+    </div>`;
+  }).join('');
+
+  const resHeading = reserves.length === 9 ? 'Reserve pool · R1-R9'
+    : reserves.length ? `Reserve pool · R1-R${reserves.length} (only ${reserves.length} available)`
+    : 'Reserve pool';
+
+  const pitchBlock = xi.length ? `
+    <div class="pitch">
+      <div class="halfway"></div><div class="circle"></div><div class="goalbox"></div>
+      ${pitchRow(fwd,'fwdrow')}${pitchRow(mid,'midrow')}${pitchRow(def,'defrow')}${pitchRow(gk,'gkrow')}
+    </div>` : `
+    <div class="empty-team">No Starting XI recorded — all ${squad.length} players are listed below.</div>`;
+
+  const actions = `
+    <div class="edit-actions">
+      ${!editing ? `<button class="btn" id="editBtn">✎ Edit / swap</button>` : ''}
+      ${!editing && isFull && reserves.length ? `<button class="btn danger" id="finalizeBtn">✓ Finalize squad</button>` : ''}
+      ${editing ? `<span class="edit-hint">Click a squad player, then a reserve (or vice-versa) to swap them.</span>
+        <button class="btn primary" id="saveBtn"${edit.dirty?'':' disabled'}>Save changes</button>
+        <button class="btn" id="discardBtn">${edit.dirty?'Discard':'Done'}</button>` : ''}
+    </div>`;
+
+  view.innerHTML = `
+    <header class="team-head">
+      <p class="team-eyebrow">${eyebrow}</p>
+      <h1 class="team-name">${esc(t.team)}</h1>
+      <div class="stat-row">
+        <div class="stat"><p class="k">Players</p><p class="v mono">${squad.length}/26</p></div>
+        <div class="stat"><p class="k">Formation</p><p class="v mono">${formation}</p></div>
+        <div class="stat"><p class="k">Avg RAV</p><p class="v mono">${avgRav.toFixed(1)}</p></div>
+        <div class="stat"><p class="k">Total value</p><p class="v mono">${fmtVal(totalVal)}</p></div>
+      </div>
+      ${statusNote(e)}
+      ${actions}
+    </header>
+    ${pitchBlock}
+    <p class="sec-label">Bench · by position</p>
+    <div class="bench">${benchCols}</div>
+    <p class="sec-label">${resHeading}</p>
+    ${reserves.length ? `<div class="reserves">${reserveCards}</div>`
+      : `<p class="no-res">${isFull ? 'Finalized — reserves removed. 26-player squad only.' : 'No reserves recorded for this team.'}</p>`}
+  `;
+
+  const on = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+  on('editBtn', () => { editing = true; sel = null; renderTeam(); });
+  on('finalizeBtn', finalizeTeam);
+  on('saveBtn', saveEdits);
+  on('discardBtn', () => {
+    if (edit.dirty){ edit = null; }         // drop working copy; will re-init from registry
+    editing = false; sel = null; renderTeam();
+  });
+  if (editing){
+    view.querySelectorAll('.editable').forEach(el => el.addEventListener('click', () => {
+      const id = el.dataset.id, kind = el.dataset.kind;
+      if (sel && sel.kind === kind && String(sel.id) === String(id)){ sel = null; renderTeam(); return; }
+      if (!sel || sel.kind === kind){ sel = {id, kind}; renderTeam(); return; }  // first pick or same type → reselect
+      const squadId = kind === 'squad' ? id : sel.id;   // opposite types → swap
+      const reserveId = kind === 'reserve' ? id : sel.id;
+      doSwap(squadId, reserveId); sel = null; renderTeam();
+    }));
+  }
+}
+
+/* ═══════════ Swap / save / finalize ═══════════ */
+function doSwap(squadId, reserveId){
+  const si = edit.squad.findIndex(p => String(p.id) === String(squadId));
+  const ri = edit.reserves.findIndex(p => String(p.id) === String(reserveId));
+  if (si < 0 || ri < 0) return;
+  const S = edit.squad[si], R = edit.reserves[ri];
+  edit.squad[si]   = {...R, role:S.role, rid:undefined};   // reserve promoted, inherits the slot's role
+  edit.reserves[ri] = {...S, rid:R.rid, role:undefined};    // player demoted into that reserve's R#
+  edit.dirty = true;
+}
+
+async function saveEdits(){
+  const payload = {
+    team: edit.team,
+    squad: edit.squad.map(p => ({id:String(p.id), role:p.role})),
+    reserves: edit.reserves.map(p => ({id:String(p.id), rid:p.rid}))
+  };
+  toast('Saving…');
+  try{
+    const r = await fetch('/api/save', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error || 'save failed');
+    toast('Saved ✓ · backup ' + (j.backup || ''));
+    edit = null; editing = false; sel = null; lastSig = ''; await refresh(true);
+  }catch(err){ toast('Save failed: ' + err.message, true); }
+}
+
+async function finalizeTeam(){
+  const name = edit.team;
+  if(!confirm('Finalize ' + name + '?\n\nThis permanently removes the 9 reserves from the registry, keeping only the 26-player squad. A backup is saved, but this cannot be undone from the dashboard.')) return;
+  toast('Finalizing…');
+  try{
+    const r = await fetch('/api/finalize', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({team:name})});
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error || 'finalize failed');
+    toast('Finalized ✓ · ' + (j.removed_reserves ?? 0) + ' reserves removed');
+    edit = null; editing = false; sel = null; lastSig = ''; await refresh(true);
+  }catch(err){ toast('Finalize failed: ' + err.message, true); }
+}
+
+let _toastT;
+function toast(msg, isErr){
+  const el = document.getElementById('toast'); if(!el) return;
+  el.textContent = msg; el.classList.toggle('err', !!isErr); el.classList.add('show');
+  clearTimeout(_toastT); _toastT = setTimeout(() => el.classList.remove('show'), isErr ? 5000 : 3000);
+}
+
+/* ═══════════ Live update: registry .xlsx or insufficient-pool .csv ═══════════ */
+function loadFile(file){
+  const isCsv = /\.csv$/i.test(file.name);
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      if (isCsv){
+        const parsed = parseInsuffCsv(ev.target.result);
+        if (!parsed) { alert('Could not find a Team column in this CSV.'); return; }
+        INSUFF = parsed;
+        document.getElementById('srcLabel').textContent =
+          `Insufficient-pool notes: ${file.name} (${Object.keys(parsed).length} teams) · ${new Date().toLocaleTimeString()}`;
+      } else {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
+        const teams = parseWorkbook(wb);
+        if (!teams.length){ alert('No team sheets found in this workbook.'); return; }
+        TEAMS = teams;
+        document.getElementById('srcLabel').textContent =
+          `Live: ${file.name} · loaded ${new Date().toLocaleTimeString()}`;
+      }
+      ROSTER = buildRoster();
+      if (!ROSTER.some(x => x.key === currentKey)) currentKey = ROSTER[0] && ROSTER[0].key;
+      renderBoard(); renderTeam();
+    }catch(err){
+      alert('Could not read this file: ' + err.message);
+    }
+  };
+  if (isCsv) reader.readAsText(file); else reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('fileInput').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); e.target.value=''; });
+['dragenter','dragover'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); document.body.classList.add('dragging'); }));
+['dragleave','drop'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault();
+  if (ev==='dragleave' && e.relatedTarget) return;
+  document.body.classList.remove('dragging');
+  if (ev==='drop' && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+}));
+
+document.querySelectorAll('.fdot').forEach(c => c.addEventListener('click', () => {
+  filter = c.dataset.f;
+  document.querySelectorAll('.fdot').forEach(x => x.classList.toggle('active', x === c));
+  renderBoard();
+}));
+
+/* ═══════════ Light / dark toggle (sun / moon) ═══════════ */
+const SUN_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const MOON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
+const isLight = () => document.documentElement.dataset.theme === 'light';
+function updateThemeIcon(){ document.getElementById('themeToggle').innerHTML = isLight() ? MOON_SVG : SUN_SVG; }
+document.getElementById('themeToggle').addEventListener('click', () => {
+  document.documentElement.dataset.theme = isLight() ? '' : 'light';
+  updateThemeIcon();
+});
+
+if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches){
+  document.documentElement.dataset.theme = 'light';
+}
+updateThemeIcon();
+
+/* ═══════════ Local-server live data source ═══════════ */
+const DATA_BASE = '../resources/';
+const POLL_MS = 5000;
+let lastSig = '';
+
+/* draft_order_status.csv: DraftPick, FIFA_Rank, Team, Points, Category, Status */
+function parseOrderCsv(text){
+  const lines = text.replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim());
+  if(!lines.length) return [];
+  const head = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const pi = head.findIndex(h => h.includes('pick'));
+  const ri = head.findIndex(h => h.includes('rank'));
+  const ti = head.findIndex(h => h.includes('team'));
+  const ci = head.findIndex(h => h.includes('categ'));
+  const out = [];
+  for(const line of lines.slice(1)){
+    const c = line.split(',');
+    const team = ti >= 0 ? (c[ti]||'').trim() : '';
+    if(!team) continue;
+    out.push({
+      pick: pi >= 0 ? parseInt(c[pi]) : out.length + 1,
+      rank: ri >= 0 ? parseInt(c[ri]) : null,
+      team,
+      category: ci >= 0 ? (c[ci]||'').trim() : ''
+    });
+  }
+  return out;
+}
+
+async function fetchText(name){
+  const r = await fetch(DATA_BASE + name + '?t=' + Date.now(), {cache:'no-store'});
+  if(!r.ok) throw new Error(name + ' HTTP ' + r.status);
+  return await r.text();
+}
+async function fetchBytes(name){
+  const r = await fetch(DATA_BASE + name + '?t=' + Date.now(), {cache:'no-store'});
+  if(!r.ok) throw new Error(name + ' HTTP ' + r.status);
+  return new Uint8Array(await r.arrayBuffer());
+}
+
+async function refresh(force){
+  if (!force && edit && edit.dirty) return;   // don't blow away unsaved swaps mid-edit
+  const label = document.getElementById('srcLabel');
+  try{
+    const [xlsxBytes, orderTxt, insuffTxt, thinTxt] = await Promise.all([
+      fetchBytes('squad_registry.xlsx'),
+      fetchText('draft_order_status.csv').catch(() => ''),
+      fetchText('insufficient_pool_teams.csv').catch(() => ''),
+      fetchText('thin_pool_players.csv').catch(() => '')
+    ]);
+    const sig = xlsxBytes.length + ':' + orderTxt.length + ':' + insuffTxt.length + ':' + thinTxt.length;
+    if(!force && sig === lastSig) return;   // no change since last poll
+    lastSig = sig;
+
+    const wb = XLSX.read(xlsxBytes, {type:'array'});
+    const teams = parseWorkbook(wb);
+    if(teams.length) TEAMS = teams;
+    if(orderTxt){ const o = parseOrderCsv(orderTxt); if(o.length) ORDER = o; }
+    if(insuffTxt){ const p = parseInsuffCsv(insuffTxt); if(p) INSUFF = p; }
+    if(thinTxt){ const th = parseThinCsv(thinTxt); if(th) THIN = th; }
+
+    ROSTER = buildRoster();
+    if(!ROSTER.some(x => x.key === currentKey)) currentKey = ROSTER[0] && ROSTER[0].key;
+    renderBoard(); renderTeam();
+    label.textContent = 'Live · updated ' + new Date().toLocaleTimeString() + ' · auto-refresh 5s';
+  }catch(err){
+    label.textContent = 'Waiting for server / files… (' + err.message + ')';
+  }
+}
+
+refresh(true);
+setInterval(() => refresh(false), POLL_MS);
+</script>
+</body>
+</html>
