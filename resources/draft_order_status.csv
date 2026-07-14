@@ -27,21 +27,21 @@ DraftPick,FIFA_Rank,Team,Points,Category,Status
 26,186,Cook Islands,877.53,FIFA member,Done - Thin pool (6 players)
 27,185,Laos,885.03,FIFA member,Done - Full squad
 28,184,Eritrea,887.06,FIFA member,"Done - Thin pool (20 players, incl. Alexander Isak RAV 68.28)"
-29,183,Chad,896.85,FIFA member,
-30,182,Dominica,897.69,FIFA member,
-31,181,Bangladesh,902.93,FIFA member,
-32,180,Belize,907.0,FIFA member,
-33,179,Barbados,909.89,FIFA member,
-34,178,Mauritius,911.49,FIFA member,
-35,177,Nepal,914.54,FIFA member,
-36,176,Montserrat,916.75,FIFA member,
-37,175,Cambodia,922.32,FIFA member,
-38,174,Chinese Taipei,923.78,FIFA member,
-39,173,Maldives,943.92,FIFA member,
-40,172,Andorra,946.43,FIFA member,
-41,171,Afghanistan,968.07,FIFA member,
-42,170,St Vincent and the Grenadines,968.27,FIFA member,
-43,169,South Sudan,970.94,FIFA member,
+29,183,Chad,896.85,FIFA member,Done - Full squad (0 valued goalkeepers available)
+30,182,Dominica,897.69,FIFA member,Done - Thin pool (4 players)
+31,181,Bangladesh,902.93,FIFA member,Done - Full squad
+32,180,Belize,907.0,FIFA member,Done - Thin pool (5 players)
+33,179,Barbados,909.89,FIFA member,"Done - Thin pool (11 players, incl. Myles Lewis-Skelly RAV 64.55, Arsenal FC, England/Barbados dual)"
+34,178,Mauritius,911.49,FIFA member,"Done - Thin pool (18 players, incl. Marli Salmon RAV 40.77, Arsenal FC U21, England/Mauritius dual)"
+35,177,Nepal,914.54,FIFA member,Done - Thin pool (24 players)
+36,176,Montserrat,916.75,FIFA member,"Done - Thin pool (8 players, incl. Joe Willock, Newcastle United, England/Montserrat dual)"
+37,175,Cambodia,922.32,FIFA member,Done - Full squad
+38,174,Taiwan,923.78,FIFA member,Done - Full squad
+39,173,Maldives,943.92,FIFA member,Done - Full squad
+40,172,Andorra,946.43,FIFA member,Done - Full squad
+41,171,Afghanistan,968.07,FIFA member,"Done - Full squad (incl. Jusef Erabi RAV 27.88, Preston North End, Sweden/Afghanistan dual)"
+42,170,St Vincent and the Grenadines,968.27,FIFA member,"Done - Thin pool (7 players, incl. Jesse Lingard, Corinthians, England/St. Vincent dual)"
+43,169,South Sudan,970.94,FIFA member,"Done - Full squad (incl. Victor Loturi RAV 24.22 and Garang Kuol RAV 23.02, Australia/Canada dual nationals)"
 44,168,Papua New Guinea,974.9,FIFA member,
 45,167,Bermuda,975.05,FIFA member,
 46,166,St Lucia,976.71,FIFA member,

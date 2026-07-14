@@ -1,0 +1,255 @@
+Nation,FIFA_Rank,NationID,DraftOrder
+Afghanistan,171,1,41
+Albania,67,2,145
+Algeria,29,3,183
+American Samoa,191,4,21
+American Virgin Islands,208,5,4
+Andorra,172,6,40
+Angola,87,7,125
+Anguilla,210,8,2
+Antigua and Barbuda,162,9,50
+Argentina,2,10,210
+Armenia,107,11,105
+Aruba,189,12,23
+Australia,28,13,184
+Austria,23,14,189
+Azerbaijan,126,15,86
+Bahamas,207,16,5
+Bahrain,92,17,120
+Bangladesh,181,18,31
+Barbados,179,19,33
+Belarus,96,20,116
+Belgium,8,21,204
+Belize,180,22,32
+Benin,93,23,119
+Bermuda,167,24,45
+Bhutan,192,25,20
+Bolivia,77,26,135
+Bonaire,NR,27,NR
+Bosnia-Herzegovina,61,28,151
+Botswana,147,29,65
+Brazil,5,30,207
+British India,NR,31,NR
+British Virgin Islands,209,32,3
+Brunei Darussalam,194,33,18
+Bulgaria,85,34,127
+Burkina Faso,62,35,150
+Burundi,142,36,70
+Cambodia,175,37,37
+Cameroon,43,38,169
+Canada,30,39,182
+Cape Verde,64,40,148
+Cayman Islands,197,41,15
+Central African Republic,139,42,73
+Chad,183,43,29
+Chile,49,44,163
+China,91,45,121
+Taiwan,174,46,38
+Christmas Island,NR,47,NR
+Colombia,11,48,201
+Comoros,108,49,104
+Congo,134,50,78
+Cookinseln,186,51,26
+Costa Rica,51,52,161
+Cote d'Ivoire,31,53,181
+Crimea,NR,54,NR
+Croatia,13,55,199
+CSSR,NR,56,NR
+Cuba,164,57,48
+Curacao,82,58,130
+Cyprus,124,59,88
+Czech Republic,48,60,164
+Denmark,21,61,191
+Djibouti,196,62,16
+Dominica,182,63,30
+Dominican Republic,144,64,68
+DR Congo,41,65,171
+East Germany (GDR),NR,66,NR
+Ecuador,25,67,187
+Egypt,24,68,188
+El Salvador,100,69,112
+England,4,70,208
+Equatorial Guinea,105,71,107
+Eritrea,184,72,28
+Estonia,127,73,85
+Eswatini,165,74,47
+Ethiopia,143,75,69
+Falkland Islands,NR,76,NR
+Faroe Islands,123,77,89
+Federated States of Micronesia,NR,78,NR
+Fiji,155,79,57
+Finland,75,80,137
+France,1,81,211
+French Guiana,NR,82,NR
+Gabon,84,83,128
+Georgia,72,84,140
+Germany,12,85,200
+Ghana,65,86,147
+Gibraltar,202,87,10
+Greece,46,88,166
+Greenland,NR,89,NR
+Grenada,163,90,49
+Guadeloupe,NR,91,NR
+Guam,203,92,9
+Guatemala,97,93,115
+Guernsey,NR,94,NR
+Guinea,81,95,131
+Guinea-Bissau,132,96,80
+Guyana,150,97,62
+Haiti,88,98,124
+Honduras,66,99,146
+Hongkong,156,100,56
+Hungary,39,101,173
+Iceland,74,102,138
+India,138,103,74
+Indonesia,118,104,94
+Iran,22,105,190
+Iraq,63,106,149
+Ireland,55,107,157
+Isle of Man,NR,108,NR
+Israel,76,109,136
+Italy,15,110,197
+Jamaica,71,111,141
+Japan,17,112,195
+Jersey,NR,113,NR
+Jordan,73,114,139
+Jugoslawien (SFR),NR,115,NR
+Kazakhstan,111,116,101
+Kenya,109,117,103
+Kiribati,NR,118,NR
+"Korea, North",120,119,92
+"Korea, South",32,120,180
+Kosovo,78,121,134
+Kuwait,133,122,79
+Kyrgyzstan,106,123,106
+Laos,185,124,27
+Latvia,137,125,75
+Lebanon,115,126,97
+Lesotho,146,127,66
+Liberia,140,128,72
+Libya,110,129,102
+Liechtenstein,206,130,6
+Lithuania,149,131,63
+Luxembourg,98,132,114
+Macao,193,133,19
+Macedonia,NR,134,NR
+Madagascar,104,135,108
+Malawi,129,136,83
+Malaysia,136,137,76
+Maldives,173,138,39
+Mali,53,139,159
+Malta,161,140,51
+Mandate for Palestine,NR,141,NR
+Marshall Islands,NR,142,NR
+Martinique,NR,143,NR
+Mauritania,113,144,99
+Mauritius,178,145,34
+Mayotte,NR,146,NR
+Mexico,10,147,202
+Moldova,159,148,53
+Monaco,NR,149,NR
+Mongolia,190,150,22
+Montenegro,80,151,132
+Montserrat,176,152,36
+Morocco,6,153,206
+Mozambique,103,154,109
+Myanmar,158,155,54
+Namibia,121,156,91
+Nauru,NR,157,NR
+Nepal,177,158,35
+Netherlands,9,159,203
+Netherlands Antilles,NR,160,NR
+Netherlands East India,NR,161,NR
+New Caledonia,151,162,61
+New Zealand,86,163,126
+Nicaragua,131,164,81
+Niger,114,165,98
+Nigeria,26,166,186
+Niue,NR,167,NR
+North Macedonia,69,168,143
+Northern Ireland,70,169,142
+Northern Mariana Islands,NR,170,NR
+Norway,19,171,193
+Oman,79,172,133
+Pakistan,198,173,14
+Palau,NR,174,NR
+Palestine,95,175,117
+Panama,44,176,168
+Papua New Guinea,168,177,44
+Paraguay,34,178,178
+People's republic of the Congo,NR,179,NR
+Peru,50,180,162
+Philippines,135,181,77
+Poland,36,182,176
+Portugal,7,183,205
+Puerto Rico,154,184,58
+Qatar,59,185,153
+Réunion,NR,186,NR
+Romania,52,187,160
+Russia,35,188,177
+Rwanda,128,189,84
+Saarland,NR,190,NR
+Saint-Martin,NR,191,NR
+Samoa,188,192,24
+San Marino,211,193,1
+Sao Tome and Principe,195,194,17
+Saudi Arabia,58,195,154
+Scotland,42,196,170
+Senegal,18,197,194
+Serbia,40,198,172
+Serbia and Montenegro,NR,199,NR
+Seychelles,204,200,8
+Sierra Leone,122,201,90
+Singapore,148,202,64
+Sint Maarten,NR,203,NR
+Slovakia,45,204,167
+Slovenia,56,205,156
+Solomon Islands,153,206,59
+Somalia,199,207,13
+South Africa,54,208,158
+Southern Sudan,169,209,43
+Spain,3,210,209
+Sri Lanka,187,211,25
+St. Kitts & Nevis,152,212,60
+St. Lucia,166,213,46
+St. Vincent & Grenadinen,170,214,42
+Sudan,117,215,95
+Suriname,125,216,87
+Swaziland,NR,217,NR
+Sweden,37,218,175
+Switzerland,14,219,198
+Syria,83,220,129
+Tahiti,157,221,55
+Tajikistan,101,222,111
+Tanzania,112,223,100
+Thailand,94,224,118
+The Gambia,116,225,96
+Timor-Leste,201,226,11
+Togo,119,227,93
+Tonga,200,228,12
+Trinidad and Tobago,102,229,110
+Tunisia,57,230,155
+Türkiye,27,231,185
+Turkmenistan,141,232,71
+Turks- and Caicosinseln,205,233,7
+Tuvalu,NR,234,NR
+UdSSR,NR,235,NR
+Uganda,89,236,123
+Ukraine,33,237,179
+United Arab Emirates,68,238,144
+United Kingdom,NR,239,NR
+United States,16,240,196
+Uruguay,20,241,192
+Uzbekistan,60,242,152
+Vanuatu,160,243,52
+Vatican,NR,244,NR
+Venezuela,47,245,165
+Vietnam,99,246,113
+Wales,38,247,174
+Western Sahara,NR,248,NR
+Yemen,145,249,67
+Yugoslavia (Republic),NR,250,NR
+Zaire,NR,251,NR
+Zambia,90,252,122
+Zanzibar,NR,253,NR
+Zimbabwe,130,254,82
